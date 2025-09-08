@@ -10,24 +10,43 @@ namespace DirectorySync.Service
     /// console and a rolling log file ("log.txt") with daily intervals.</remarks>
     internal static class Logger
     {
-        private static readonly ILogger _logger;
+        private static ILogger? _logger;
 
-        static Logger()
+        /// <summary>
+        /// Initializes a logger service. Sets a log directory.
+        /// </summary>
+        /// <param name="logDir">Path to logging directory.</param>
+        public static void Initialize(string logDir)
         {
-            _logger = new LoggerConfiguration()
-                .WriteTo.Console()
-                .WriteTo.File("log.txt", rollingInterval: RollingInterval.Day)
-                .CreateLogger();
+            string logPath = Path.Combine(logDir, "log.txt");
+
+            if (!Directory.Exists(logDir))
+            {
+                Directory.CreateDirectory(logDir);
+            }
+
+            try
+            {
+                _logger = new LoggerConfiguration()
+                    .WriteTo.Console()
+                    .WriteTo.File(logPath, rollingInterval: RollingInterval.Day)
+                    .CreateLogger();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during Logger initialization: {ex.Message}");
+                throw;
+            }
         }
 
-        public static void Information(string message) => _logger.Information(message);
+        public static void Information(string message) => _logger?.Information(message);
 
-        public static void Warning(string message) => _logger.Warning(message);
+        public static void Warning(string message) => _logger?.Warning(message);
 
-        public static void Error(string message) => _logger.Error(message);
+        public static void Error(string message) => _logger?.Error(message);
 
-        public static void Debug(string message) => _logger.Debug(message);
+        public static void Debug(string message) => _logger?.Debug(message);
 
-        public static void Fatal(string message) => _logger.Fatal(message);
+        public static void Fatal(string message) => _logger?.Fatal(message);
     }
 }
