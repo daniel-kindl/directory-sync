@@ -107,6 +107,8 @@ namespace DirectorySync.Service
         /// <exception cref="IOException"></exception>
         private static Dictionary<string, SyncItem> GetDirectoryItems(string directoryPath)
         {
+            Logger.Information($"Scanning directory {directoryPath}");
+            
             Dictionary<string, SyncItem> directoryItems = [];
 
             try
@@ -119,23 +121,24 @@ namespace DirectorySync.Service
 
                 foreach (var dir in Directory.GetDirectories(directoryPath, "*", SearchOption.AllDirectories))
                 {
-                    string relPath = Path.GetRelativePath(directoryPath, dir);
-                    directoryItems.TryAdd(relPath, new SyncItem(true, string.Empty));
+                    string relDirPath = Path.GetRelativePath(directoryPath, dir);
+                    directoryItems.TryAdd(relDirPath, new SyncItem(true, string.Empty));
                 }
 
                 foreach (var file in Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories))
                 {
-                    string relPath = Path.GetRelativePath(directoryPath, file);
+                    string relFilePath = Path.GetRelativePath(directoryPath, file);
                     FileInfo fileInfo = new(file);
                     string fileHash = ComputeFileHash(fileInfo.FullName);
-                    directoryItems.TryAdd(relPath, new SyncItem(false, fileHash));
+                    directoryItems.TryAdd(relFilePath, new SyncItem(false, fileHash));
                 }
             }
             catch (Exception ex)
             {
                 Logger.Error($"Error reading directory '{directoryPath}': {ex.Message}");
-                throw new IOException($"Error reading directory '{directoryPath}': {ex.Message}", ex);
             }
+
+            Logger.Information("Scanning completed.");
 
             return directoryItems;
         }
