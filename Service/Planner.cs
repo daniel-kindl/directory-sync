@@ -35,47 +35,55 @@ namespace DirectorySync.Service
             Dictionary<string, SyncItem> replicaItems, string destinationRoot
         )
         {
+            Logger.Information("Creating tasks for synchronization...");
+            
             List<SyncTask> tasks = new();
 
-            // Create directories missing in replica directory
-            foreach (var directory in sourceItems.Where(item => item.Value.IsDir))
-
+            // Create directories or fix type mismatches (dir in source, file in replica)
+            foreach (var directory in sourceItems.Where(it => it.Value.IsDir))
             {
-                var path = directory.Key; 
+                string path = directory.Key;
 
-                if (!replicaItems.ContainsKey(path))
+                if (!replicaItems.TryGetValue(path, out SyncItem? repMeta))
                 {
-                    tasks.Add(new SyncTask(
-                        Action: SyncAction.CreateDirectory,
-                        SourcePath: Path.Combine(sourceRoot, path),
-                        DestinationPath: Path.Combine(destinationRoot, path)
-                    ));
+                    tasks.Add(new SyncTask(SyncAction.CreateDirectory, Path.Combine(sourceRoot, path), Path.Combine(destinationRoot, path)));
+                }
+                else if (!repMeta.IsDir)    // Replica has a FILE where source has a DIR
+                {
+                    // Delete the file
+                    tasks.Add(new SyncTask(SyncAction.DeleteFile, Path.Combine(sourceRoot, path), Path.Combine(destinationRoot, path)));
+
+                    // Create the directory
+                    tasks.Add(new SyncTask(SyncAction.CreateDirectory, Path.Combine(sourceRoot, path), Path.Combine(destinationRoot, path)));
                 }
             }
 
             // Create or update files
             foreach (var file in sourceItems.Where(item => !item.Value.IsDir))
             {
-                var path    = file.Key;
-                var srcMeta = file.Value;
+                string path      = file.Key;
+                SyncItem srcMeta = file.Value;
 
-                if (!replicaItems.TryGetValue(path, out var repMeta))
+                // Copy new file to replica
+                if (!replicaItems.TryGetValue(path, out SyncItem? repMeta))
                 {
-                    tasks.Add(new SyncTask(
-                        Action: SyncAction.CopyFile,
-                        SourcePath: Path.Combine(sourceRoot, path),
-                        DestinationPath: Path.Combine(destinationRoot, path)
-                    ));
+                    tasks.Add(new SyncTask(SyncAction.CopyFile, Path.Combine(sourceRoot, path), Path.Combine(destinationRoot, path)));
                 }
 
-                // catching cases where a file in the source is a directory in the replica (or vice versa)
-                else if (repMeta.IsDir || repMeta.ItemHash != srcMeta.ItemHash)
+                // Catching cases where a file in the source is a directory in the replica
+                else if (repMeta.IsDir != srcMeta.IsDir)
                 {
-                    tasks.Add(new SyncTask(
-                        Action: SyncAction.UpdateFile,
-                        SourcePath: Path.Combine(sourceRoot, path),
-                        DestinationPath: Path.Combine(destinationRoot, path)
-                    ));
+                    // Delete whatever is in replica
+                    tasks.Add(new SyncTask(repMeta.IsDir ? SyncAction.DeleteDirectory : SyncAction.DeleteFile, Path.Combine(sourceRoot, path), Path.Combine(destinationRoot, path)));
+
+                    // Since src is a file in this loop, recreate as file
+                    tasks.Add(new SyncTask(SyncAction.CopyFile, Path.Combine(sourceRoot, path), Path.Combine(destinationRoot, path)));
+                }
+
+                // Update file in replica
+                else if (repMeta.ItemHash != srcMeta.ItemHash)
+                {
+                    tasks.Add(new SyncTask(SyncAction.UpdateFile, Path.Combine(sourceRoot, path), Path.Combine(destinationRoot, path)));
                 }
             }
 
@@ -83,15 +91,14 @@ namespace DirectorySync.Service
             foreach (var item in replicaItems.Where(item => !sourceItems.ContainsKey(item.Key))
                                              .OrderByDescending(item => item.Value.IsDir)) // sort files before dirs
             {
-                var path    = item.Key;
-                var repMeta = item.Value;
+                string path      = item.Key;
+                SyncItem repMeta = item.Value;
 
-                tasks.Add(new SyncTask(
-                    Action: repMeta.IsDir ? SyncAction.DeleteDirectory : SyncAction.DeleteFile,
-                    SourcePath: Path.Combine(sourceRoot, path),
-                    DestinationPath: Path.Combine(destinationRoot, path)
-                ));
+                // Delete file/dir in replica
+                tasks.Add(new SyncTask(repMeta.IsDir ? SyncAction.DeleteDirectory : SyncAction.DeleteFile, Path.Combine(sourceRoot, path), Path.Combine(destinationRoot, path)));
             }
+
+            Logger.Information(tasks.Count > 0 ? "Tasks for sinchronization created." : "No tasks needed. Replica up to date.");
 
             return tasks;
         }
