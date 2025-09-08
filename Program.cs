@@ -29,6 +29,7 @@ namespace DirectorySync
             CancellationTokenSource cts = new();
             Console.CancelKeyPress += (s, e) =>
             {
+                Logger.Warning("Cancellation invoked...");
                 cts.Cancel();
                 e.Cancel = true;
             };
