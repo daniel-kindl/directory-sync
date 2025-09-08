@@ -5,10 +5,25 @@ namespace DirectorySync.Service
 {
     public class SyncService
     {
+        /// <summary>
+        /// source directory.
+        /// </summary>
         private readonly string _source;
+
+        /// <summary>
+        /// replica directory.
+        /// </summary>
         private readonly string _replica;
+
+        /// <summary>
+        /// Interval for synchronization.
+        /// </summary>
         private readonly TimeSpan _interval;
-        private CancellationToken _ctk;
+
+        /// <summary>
+        /// Cancellation token to cancel synchronization.
+        /// </summary>
+        private readonly CancellationToken _ctk;
 
         public SyncService(string sourceDir, string replicaDir, TimeSpan interval, CancellationToken token)
         {
@@ -18,8 +33,12 @@ namespace DirectorySync.Service
             _ctk = token;
         }
 
+        /// <summary>
+        /// Runs synchronization only once.
+        /// </summary>
         public void RunOnce()
         {
+            // Get a list of synhronization task to be preformed
             List<SyncTask> tasks = Planner.GetSyncTasks
             (
                 sourceItems: GetDirectoryItems(_source),
@@ -28,9 +47,14 @@ namespace DirectorySync.Service
                 destinationRoot: _replica
             );
 
+            // execute the synchronization tasks
             Executor.ExecuteSynchronization(tasks);
         }
 
+        /// <summary>
+        /// Runs async synchronization periodically.
+        /// </summary>
+        /// <returns></returns>
         public async Task RunAsync()
         {
             while (!_ctk.IsCancellationRequested)
@@ -46,24 +70,41 @@ namespace DirectorySync.Service
 
                 try
                 {
-                    await Task.Delay(_interval, _ctk); // breaks out on cancel
+                    await Task.Delay(_interval, _ctk);
                 }
                 catch (TaskCanceledException)
                 {
-                    break; // exit loop on cancel
+                    Logger.Information("Stopping synchronization service...");
+                    break;
                 }
             }
         }
 
+        /// <summary>
+        /// Computes a SHA256 hash on file specified by parameter.
+        /// </summary>
+        /// <param name="filePath">Path to the file.</param>
+        /// <returns>SHA256 hash.</returns>
         private static string ComputeFileHash(string filePath)
         {
-            SHA256 sha256 = SHA256.Create();
+            // Computes a SHA256 hash
+            SHA256 sha256     = SHA256.Create();
             FileStream stream = File.OpenRead(filePath);
-            byte[] hash = sha256.ComputeHash(stream);
+            byte[] hash       = sha256.ComputeHash(stream);
+
+            // Close file stream
             stream.Close();
+
             return Convert.ToHexString(hash);
         }
 
+        /// <summary>
+        /// This function scans a specified directory ands its content (files, subfolders) to dictionary.
+        /// </summary>
+        /// <param name="directoryPath">Directory path.</param>
+        /// <returns>Returns a dictionary with content of specified directory.</returns>
+        /// <exception cref="DirectoryNotFoundException"></exception>
+        /// <exception cref="IOException"></exception>
         private static Dictionary<string, SyncItem> GetDirectoryItems(string directoryPath)
         {
             Dictionary<string, SyncItem> directoryItems = [];
