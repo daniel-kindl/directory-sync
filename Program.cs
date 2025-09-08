@@ -8,20 +8,36 @@ namespace DirectorySync
         {
             Console.Title = "Directory Synchronization Tool";
 
-            string sourceDir      = @"C:\Users\Daniel\Desktop\sourceDir";
-            string replicaDir     = @"C:\Users\Daniel\Desktop\replicaDir";
-            int intervalMs        = 10 * 1000;
-            CancellationToken ctk = new();
+            // Not all arguments were provided
+            if (args.Length < 4)
+            {
+                Console.WriteLine("Invalid arguments..." + Environment.NewLine);
+                Console.WriteLine("Usage: FolderSync <sourceDir> <replicaDir> <logDir> <intervalSeconds>");
+                return;
+            }
 
-            SyncService syncService = new
-            (
-                sourceDir:  sourceDir,
-                replicaDir: replicaDir,
-                interval:   TimeSpan.FromMilliseconds(intervalMs),
-                token:      ctk
-            );
+            // Get needed parameters from agruments
+            string srcDir        = args[0];
+            string dstDir        = args[1];
+            string logDir        = args[2];
+            TimeSpan intervalSec = TimeSpan.FromSeconds(int.Parse(args[3]));
 
-           await syncService.RunAsync();
+            // Initializes logger
+            Logger.Initialize(logDir);
+
+            // Create a cancellation token source with an event to handle cancelation (ctrl + C)
+            CancellationTokenSource cts = new();
+            Console.CancelKeyPress += (s, e) =>
+            {
+                cts.Cancel();
+                e.Cancel = true;
+            };
+
+            // Create new syns service
+            SyncService syncService = new(srcDir, dstDir, intervalSec, cts.Token);
+
+            // Start sync service
+            await syncService.RunAsync();
         }
     }
 }
