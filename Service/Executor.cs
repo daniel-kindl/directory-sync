@@ -39,7 +39,6 @@ namespace DirectorySync.Service
                         {
                             Logger.Information($"Creating directory: {task.DestinationPath}");
                             Directory.CreateDirectory(task.DestinationPath);
-                            Logger.Information($"Created directory: {task.DestinationPath}");
                         }
                         catch (Exception ex)
                         {
@@ -52,7 +51,6 @@ namespace DirectorySync.Service
                         {
                             Logger.Information($"Deleting directory: {task.DestinationPath}");
                             Directory.Delete(task.DestinationPath);
-                            Logger.Information($"Deleted directory: {task.DestinationPath}");
                         }
                         catch (Exception ex)
                         {
@@ -66,7 +64,6 @@ namespace DirectorySync.Service
                         {
                             Logger.Information($"Copying file: {task.SourcePath} to {task.DestinationPath}");
                             File.Copy(task.SourcePath, task.DestinationPath, true);
-                            Logger.Information($"Copied file: {task.SourcePath} to {task.DestinationPath}");
                         }
                         catch (Exception ex)
                         {
@@ -79,7 +76,6 @@ namespace DirectorySync.Service
                         {
                             Logger.Information($"Deleting file: {task.DestinationPath}");
                             File.Delete(task.DestinationPath);
-                            Logger.Information($"Deleted file: {task.DestinationPath}");
                         }
                         catch (Exception ex)
                         {
@@ -92,6 +88,8 @@ namespace DirectorySync.Service
                         break;
                 }
             }
+
+            Logger.Information("Synchronization finished.");
         }
     }
 }
