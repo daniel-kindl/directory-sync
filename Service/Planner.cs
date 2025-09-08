@@ -35,7 +35,7 @@ namespace DirectorySync.Service
             Dictionary<string, SyncItem> replicaItems, string destinationRoot
         )
         {
-            List<SyncTask> tasks = new List<SyncTask>();
+            List<SyncTask> tasks = new();
 
             // Create directories missing in replica directory
             foreach (var directory in sourceItems.Where(item => item.Value.IsDir))
