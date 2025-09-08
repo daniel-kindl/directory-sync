@@ -24,7 +24,6 @@ namespace DirectorySync.Service
         {
             if (tasks == null || tasks.Count == 0)
             {
-                Logger.Information("No tasks to execute.");
                 return;
             }
 
