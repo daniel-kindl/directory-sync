@@ -142,7 +142,7 @@ jobs:
   publish-nuget:
     name: Publish to NuGet
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') && secrets.NUGET_API_KEY != ''
+    if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
     - name: Checkout code
@@ -165,6 +165,5 @@ jobs:
           /p:Version=${{ steps.version.outputs.VERSION }}
 
     - name: Push to NuGet
-      if: secrets.NUGET_API_KEY != ''
       run: dotnet nuget push ./nupkg/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
       continue-on-error: true

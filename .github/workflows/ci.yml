@@ -42,7 +42,7 @@ jobs:
       run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
 
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && github.event_name != 'pull_request' && secrets.CODECOV_TOKEN != ''
+      if: matrix.os == 'ubuntu-latest' && github.event_name != 'pull_request'
       uses: codecov/codecov-action@v5
       with:
         directory: ./coverage
