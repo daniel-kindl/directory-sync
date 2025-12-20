@@ -14,8 +14,8 @@ public class ConfigFileTests : IDisposable
         string nestedPath = Path.Combine(_testDir, "subdir", "config", "test.json");
         var config = new ConfigFile
         {
-            Source = "C:\\Source",
-            Replica = "C:\\Replica",
+            Source = "/path/to/source",
+            Replica = "/path/to/replica",
             Interval = 60,
             UseChecksum = true,
             AllowDelete = false
@@ -31,8 +31,8 @@ public class ConfigFileTests : IDisposable
         // Verify content can be read back
         var loaded = ConfigFile.LoadFromFile(nestedPath);
         Assert.NotNull(loaded);
-        Assert.Equal("C:\\Source", loaded!.Source);
-        Assert.Equal("C:\\Replica", loaded.Replica);
+        Assert.Equal("/path/to/source", loaded!.Source);
+        Assert.Equal("/path/to/replica", loaded.Replica);
         Assert.Equal(60, loaded.Interval);
         Assert.True(loaded.UseChecksum);
         Assert.False(loaded.AllowDelete);
@@ -46,8 +46,8 @@ public class ConfigFileTests : IDisposable
         string filePath = Path.Combine(_testDir, "config.json");
         var config = new ConfigFile
         {
-            Source = "C:\\Test",
-            Replica = "C:\\Backup"
+            Source = "/test/path",
+            Replica = "/backup/path"
         };
 
         // Act
@@ -66,7 +66,7 @@ public class ConfigFileTests : IDisposable
 
         var config = new ConfigFile
         {
-            Source = "C:\\Source"
+            Source = "/test/source"
         };
 
         // Act & Assert - Should not throw
