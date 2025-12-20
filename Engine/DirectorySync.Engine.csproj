@@ -3,6 +3,24 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Description>Core synchronization engine for DirectorySync - reusable library for one-way directory mirroring</Description>
+    
+    <!-- Package Information -->
+    <Authors>Daniel Kindl</Authors>
+    <PackageId>DirectorySync.Engine</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/daniel-kindl/directory-sync</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/daniel-kindl/directory-sync</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>sync;backup;directory;mirror;file-sync;replication</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    
+    <!-- Build Configuration -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>

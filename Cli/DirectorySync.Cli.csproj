@@ -4,11 +4,23 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     
+    <!-- Tool Configuration -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>dirsync</ToolCommandName>
     <PackageId>DirectorySync.Cli</PackageId>
     <Description>Production-ready directory synchronization CLI utility with one-way sync, change detection, and safety rails</Description>
+    
+    <!-- Package Information -->
+    <Authors>Daniel Kindl</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/daniel-kindl/directory-sync</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/daniel-kindl/directory-sync</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>cli;sync;backup;directory;mirror;file-sync;replication;tool</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    
+    <!-- Build Configuration -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
