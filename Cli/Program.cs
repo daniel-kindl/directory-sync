@@ -10,19 +10,19 @@ app.Configure(config =>
 
     config.AddCommand<SyncCommand>("sync")
         .WithDescription("Perform one-time directory synchronization")
-        .WithExample("sync", "-s", "C:\\Source", "-r", "C:\\Replica");
+        .WithExample("sync", "-s", "/path/to/source", "-r", "/path/to/replica");
 
     config.AddCommand<DaemonCommand>("daemon")
         .WithDescription("Run continuous synchronization with interval")
-        .WithExample("daemon", "-s", "C:\\Source", "-r", "C:\\Replica", "-i", "60");
+        .WithExample("daemon", "-s", "/path/to/source", "-r", "/path/to/replica", "-i", "60");
 
     config.AddCommand<PlanCommand>("plan")
         .WithDescription("Show what would be synchronized without making changes")
-        .WithExample("plan", "-s", "C:\\Source", "-r", "C:\\Replica");
+        .WithExample("plan", "-s", "/path/to/source", "-r", "/path/to/replica");
 
     config.AddCommand<VerifyCommand>("verify")
         .WithDescription("Verify that replica matches source")
-        .WithExample("verify", "-s", "C:\\Source", "-r", "C:\\Replica");
+        .WithExample("verify", "-s", "/path/to/source", "-r", "/path/to/replica");
 });
 
 return app.Run(args);
