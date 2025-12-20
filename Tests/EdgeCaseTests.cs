@@ -109,9 +109,17 @@ public class EdgeCaseTests : IDisposable
         {
             File.CreateSymbolicLink(symlinkFile, realFile);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Skip test if symlinks not supported
+            // Skip test if symlinks not supported or insufficient privileges
+            return;
+        }
+
+        // Verify symlink was created successfully
+        FileInfo symlinkInfo = new(symlinkFile);
+        if (!symlinkInfo.Exists || !symlinkInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+        {
+            // Symlink creation didn't work properly, skip test
             return;
         }
 
@@ -138,13 +146,22 @@ public class EdgeCaseTests : IDisposable
         Directory.CreateDirectory(realDir);
         File.WriteAllText(Path.Combine(realDir, "file.txt"), "content");
 
+        // Create symbolic link (may require elevated privileges on some platforms)
         try
         {
             Directory.CreateSymbolicLink(symlinkDir, realDir);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Skip test if symlinks not supported
+            // Skip test if symlinks not supported or insufficient privileges
+            return;
+        }
+
+        // Verify symlink was created successfully
+        DirectoryInfo symlinkInfo = new(symlinkDir);
+        if (!symlinkInfo.Exists || !symlinkInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+        {
+            // Symlink creation didn't work properly, skip test
             return;
         }
 
