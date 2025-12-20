@@ -98,13 +98,17 @@ git push origin v1.0.0
 
 ## Secrets Required
 
-Configure these secrets in your GitHub repository settings:
+Configure these secrets in your GitHub repository settings **only if you want these features**:
 
-| Secret | Required For | Description |
-|--------|-------------|-------------|
-| `CODECOV_TOKEN` | CI (optional) | Codecov.io upload token |
-| `NUGET_API_KEY` | Release | NuGet.org API key for publishing |
-| `GITHUB_TOKEN` | All | Automatically provided by GitHub |
+| Secret | Required For | Description | Required? |
+|--------|-------------|-------------|-----------|
+| `CODECOV_TOKEN` | CI (optional) | Codecov.io upload token for code coverage reporting | ❌ Optional |
+| `NUGET_API_KEY` | Release (optional) | NuGet.org API key for publishing packages | ❌ Optional |
+| `GITHUB_TOKEN` | All | Automatically provided by GitHub | ✅ Auto-provided |
+
+**Note**: All workflows will run successfully **without any manual secret configuration**. The optional features will simply be skipped if secrets are not provided:
+- Without `CODECOV_TOKEN`: Coverage reports are not uploaded (tests still run)
+- Without `NUGET_API_KEY`: Packages are not published to NuGet (GitHub releases still work)
 
 ## Permissions
 
@@ -145,11 +149,13 @@ Recommended branch protection for `main`:
 Add these badges to your README:
 
 ```markdown
-[![CI](https://github.com/daniel-kindl/directory-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/daniel-kindl/directory-sync/actions/workflows/ci.yml)
+[![CI](https://github.com/daniel-kindl/directory-sync/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/daniel-kindl/directory-sync/actions/workflows/ci.yml)
 [![Release](https://github.com/daniel-kindl/directory-sync/actions/workflows/release.yml/badge.svg)](https://github.com/daniel-kindl/directory-sync/actions/workflows/release.yml)
-[![codecov](https://codecov.io/gh/daniel-kindl/directory-sync/branch/main/graph/badge.svg)](https://codecov.io/gh/daniel-kindl/directory-sync)
-[![License](https://img.shields.io/github/license/daniel-kindl/directory-sync)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/download)
 ```
+
+**Note**: Badges will appear as "unknown" until the workflows run for the first time after pushing to GitHub.
 
 ## Local Testing
 
