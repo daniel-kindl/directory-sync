@@ -8,7 +8,7 @@ namespace DirectorySync.Engine;
 /// <remarks>
 /// <para>This static class validates that target paths stay within expected base directories.</para>
 /// <para>Protects against directory traversal attacks using ".." sequences or absolute paths that escape the base directory.</para>
-/// <para>All validation uses normalized absolute paths and case-insensitive comparison for Windows compatibility.</para>
+/// <para>All validation uses normalized absolute paths and case-insensitive comparison for compatibility.</para>
 /// </remarks>
 public static class PathValidator
 {
@@ -39,11 +39,11 @@ public static class PathValidator
     /// <item>If <paramref name="basePath"/> or <paramref name="targetPath"/> is null/empty, validation is skipped (considered safe).</item>
     /// <item>Both paths are normalized to absolute paths using <see cref="Path.GetFullPath(string)"/>.</item>
     /// <item>A directory separator is appended to <paramref name="basePath"/> if missing, to prevent false positives (e.g., "C:\foo" vs. "C:\foobar").</item>
-    /// <item>Case-insensitive comparison is used for Windows filesystem compatibility.</item>
+    /// <item>Case-insensitive comparison is used for cross-platform filesystem compatibility.</item>
     /// <item>If <paramref name="targetPath"/> does not start with <paramref name="basePath"/>, a <see cref="SecurityException"/> is thrown and logged.</item>
     /// </list>
     /// <para><strong>Security:</strong></para>
-    /// This method is critical for preventing path traversal attacks where malicious relative paths (e.g., "..\..\Windows\System32")
+    /// This method is critical for preventing path traversal attacks where malicious relative paths
     /// could escape the intended base directory. Always call before file system operations on user-controlled or externally-sourced paths.
     /// <para><strong>Thread-Safety:</strong></para>
     /// This method is thread-safe. The static <see cref="_logger"/> field may be accessed concurrently; ensure <see cref="SetLogger"/>
@@ -72,7 +72,7 @@ public static class PathValidator
         }
 
         // Check if target path is within base path
-        // Use OrdinalIgnoreCase for Windows compatibility (case-insensitive filesystem)
+        // Use OrdinalIgnoreCase for cross-platform compatibility (case-insensitive comparison)
         if (normalizedTarget.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase))
             return;
         _logger?.LogError(null,
