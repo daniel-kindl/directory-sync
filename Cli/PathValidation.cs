@@ -9,7 +9,7 @@ namespace DirectorySync.Cli;
 /// </remarks>
 public static class PathValidation
 {
-    // Windows MAX_PATH limitation (can be longer with \\?\ prefix but conservative for compatibility)
+    // Maximum path length (conservative for cross-platform compatibility)
     private const int _maxPathLength = 260;
     private const int _maxFileNameLength = 255;
 
@@ -35,7 +35,7 @@ public static class PathValidation
     /// <para><strong>Validation Checks:</strong></para>
     /// <list type="bullet">
     /// <item>Path must not be null, empty, or whitespace.</item>
-    /// <item>Path length must not exceed 260 characters (Windows MAX_PATH).</item>
+    /// <item>Path length must not exceed 260 characters (cross-platform compatibility).</item>
     /// <item>Path must not contain invalid characters (from <see cref="Path.GetInvalidPathChars"/>).</item>
     /// <item>Path must not contain suspicious traversal patterns (three or more consecutive ".." sequences).</item>
     /// <item>Path must be an absolute (rooted) path.</item>
@@ -62,8 +62,9 @@ public static class PathValidation
             return new ValidationError($"{parameterName} contains invalid characters");
         }
 
-        // Check for suspicious patterns
-        if (path.Contains("..\\..\\..") || path.Contains("../../.."))
+        // Check for suspicious patterns (normalized across platforms)
+        string normalizedPath = path.Replace('\\', '/');
+        if (normalizedPath.Contains("../../.."))
         {
             return new ValidationError($"{parameterName} contains suspicious path traversal pattern");
         }
