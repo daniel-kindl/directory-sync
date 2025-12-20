@@ -67,7 +67,7 @@ public class EdgeCaseTests : IDisposable
     [Fact]
     public void Sync_WithSpecialCharactersInFilenames_Success()
     {
-        // Arrange: Files with special characters (valid on Windows)
+        // Arrange: Files with special characters (valid on most filesystems)
         string[] specialFiles =
         [
             "file with spaces.txt",
@@ -104,7 +104,7 @@ public class EdgeCaseTests : IDisposable
 
         File.WriteAllText(realFile, "real content");
 
-        // Create symbolic link (requires admin or developer mode on Windows)
+        // Create symbolic link (may require elevated privileges on some platforms)
         try
         {
             File.CreateSymbolicLink(symlinkFile, realFile);
