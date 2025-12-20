@@ -66,17 +66,17 @@ public class SyncEngine
         string fullSource = Path.GetFullPath(source);
         string fullReplica = Path.GetFullPath(replica);
 
-        if (fullSource == fullReplica)
+        if (fullSource.Equals(fullReplica, StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Source and replica cannot be the same path");
         }
 
-        if (fullReplica.StartsWith(fullSource + Path.DirectorySeparatorChar))
+        if (fullReplica.StartsWith(fullSource + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Replica cannot be inside source");
         }
 
-        if (fullSource.StartsWith(fullReplica + Path.DirectorySeparatorChar))
+        if (fullSource.StartsWith(fullReplica + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Source cannot be inside replica");
         }
