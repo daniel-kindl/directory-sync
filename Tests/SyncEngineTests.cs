@@ -23,30 +23,50 @@ public class SyncEngineTests
     public void ValidatePaths_ShouldThrow_WhenReplicaIsInsideSource()
     {
         // Arrange
-        const string source = @"C:\Source";
-        const string replica = @"C:\Source\Replica";
+        string tempRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        string source = Path.Combine(tempRoot, "Source");
+        string replica = Path.Combine(source, "Replica");
+        Directory.CreateDirectory(replica);
 
-        // Act
-        Action act = () => SyncEngine.ValidatePaths(source, replica);
+        try
+        {
+            // Act
+            Action act = () => SyncEngine.ValidatePaths(source, replica);
 
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("Replica cannot be inside source");
+            // Assert
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("Replica cannot be inside source");
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, true);
+        }
     }
 
     [Fact]
     public void ValidatePaths_ShouldThrow_WhenSourceIsInsideReplica()
     {
         // Arrange
-        const string source = @"C:\Replica\Source";
-        const string replica = @"C:\Replica";
+        string tempRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        string replica = Path.Combine(tempRoot, "Replica");
+        string source = Path.Combine(replica, "Source");
+        Directory.CreateDirectory(source);
 
-        // Act
-        Action act = () => SyncEngine.ValidatePaths(source, replica);
+        try
+        {
+            // Act
+            Action act = () => SyncEngine.ValidatePaths(source, replica);
 
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("Source cannot be inside replica");
+            // Assert
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("Source cannot be inside replica");
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, true);
+        }
     }
 
     [Fact]
