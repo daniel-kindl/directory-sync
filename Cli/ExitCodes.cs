@@ -4,8 +4,8 @@ namespace DirectorySync.Cli;
 /// Defines exit codes returned by the directory synchronization CLI application.
 /// </summary>
 /// <remarks>
-/// Follows Unix conventions where 0 indicates success and non-zero indicates failure.
-/// Exit code 130 follows the Bash convention for SIGINT (Ctrl+C).
+/// Follows standard conventions where 0 indicates success and non-zero indicates failure.
+/// Exit code 130 follows the Bash/POSIX convention for SIGINT (Ctrl+C).
 /// </remarks>
 public static class ExitCodes
 {
