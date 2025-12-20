@@ -224,7 +224,8 @@ public class EdgeCaseTests : IDisposable
         }
 
         // Assert: If canceled, verify cleanup. If completed, that's also valid (fast SSD).
-        if (!wasCancelled) return;
+        if (!wasCancelled)
+            return;
         // Verify temp files are cleaned up (should not exist or be old)
         string[] tempFiles = Directory.GetFiles(_replica, "*.tmp.*", SearchOption.AllDirectories);
         Assert.True(tempFiles.Length <= 1); // At most the one we were copying

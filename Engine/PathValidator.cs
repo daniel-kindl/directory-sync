@@ -73,7 +73,8 @@ public static class PathValidator
 
         // Check if target path is within base path
         // Use OrdinalIgnoreCase for Windows compatibility (case-insensitive filesystem)
-        if (normalizedTarget.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase)) return;
+        if (normalizedTarget.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase))
+            return;
         _logger?.LogError(null,
             "Path traversal detected - Target: {Target}, Base: {Base}, NormalizedTarget: {NormalizedTarget}, NormalizedBase: {NormalizedBase}",
             targetPath, basePath, normalizedTarget, normalizedBase);
