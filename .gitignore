@@ -426,3 +426,8 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Project-specific
+dirsync*.log
+test-source/
+test-replica/

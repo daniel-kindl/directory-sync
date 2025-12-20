@@ -1,0 +1,134 @@
+name: Nightly
+
+on:
+  schedule:
+    # Run every night at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  extended-tests:
+    name: Extended Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run all tests (including long-running)
+      run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+      env:
+        RUN_EXTENDED_TESTS: true
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: nightly-test-results-${{ matrix.os }}
+        path: '**/test-results.trx'
+        retention-days: 90
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Check for outdated packages
+      run: |
+        dotnet list package --outdated --include-transitive > outdated.txt
+        cat outdated.txt
+
+    - name: Check for deprecated packages
+      run: |
+        dotnet list package --deprecated --include-transitive > deprecated.txt
+        cat deprecated.txt
+
+    - name: Upload reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-reports
+        path: |
+          outdated.txt
+          deprecated.txt
+        retention-days: 30
+
+  performance-benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Create test data
+      run: |
+        mkdir -p /tmp/perf-test-source
+        mkdir -p /tmp/perf-test-replica
+        
+        # Create 1000 small files
+        for i in {1..1000}; do
+          echo "Test file $i" > /tmp/perf-test-source/file$i.txt
+        done
+        
+        # Create 10 large files (10MB each)
+        for i in {1..10}; do
+          dd if=/dev/urandom of=/tmp/perf-test-source/large$i.bin bs=1M count=10 2>/dev/null
+        done
+
+    - name: Build CLI
+      run: dotnet build Cli/DirectorySync.Cli.csproj --configuration Release
+
+    - name: Run performance test
+      run: |
+        START=$(date +%s)
+        dotnet run --project Cli/DirectorySync.Cli.csproj --configuration Release --no-build -- \
+          sync -s /tmp/perf-test-source -r /tmp/perf-test-replica
+        END=$(date +%s)
+        DURATION=$((END - START))
+        echo "Sync completed in $DURATION seconds"
+        echo "PERF_DURATION=$DURATION" >> $GITHUB_ENV
+
+    - name: Save benchmark results
+      run: |
+        echo "Date: $(date)" > benchmark-results.txt
+        echo "Duration: ${{ env.PERF_DURATION }} seconds" >> benchmark-results.txt
+        echo "Files: 1010" >> benchmark-results.txt
+        echo "Total Size: ~100MB" >> benchmark-results.txt
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: benchmark-results.txt
+        retention-days: 90

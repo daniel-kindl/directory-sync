@@ -1,0 +1,41 @@
+<Project>
+
+  <!-- Build targets and customizations -->
+  
+  <!-- Display build information -->
+  <Target Name="DisplayBuildInfo" BeforeTargets="CoreCompile" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Message Importance="High" Text="Building $(MSBuildProjectName) [$(Configuration)]" />
+  </Target>
+
+  <!-- Generate build timestamp -->
+  <Target Name="SetBuildTimestamp" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <BuildTimestamp>$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))</BuildTimestamp>
+      <BuildNumber Condition="'$(BuildNumber)' == ''">local</BuildNumber>
+    </PropertyGroup>
+  </Target>
+
+  <!-- Add build metadata to assembly -->
+  <Target Name="AddBuildMetadata" BeforeTargets="GetAssemblyAttributes">
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BuildTimestamp)' != ''">
+        <_Parameter1>BuildTimestamp</_Parameter1>
+        <_Parameter2>$(BuildTimestamp)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BuildNumber)' != ''">
+        <_Parameter1>BuildNumber</_Parameter1>
+        <_Parameter2>$(BuildNumber)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+  <!-- Clean additional artifacts -->
+  <Target Name="CleanAdditionalArtifacts" AfterTargets="Clean">
+    <ItemGroup>
+      <AdditionalCleanFiles Include="$(MSBuildProjectDirectory)\*.log" />
+      <AdditionalCleanFiles Include="$(MSBuildProjectDirectory)\*.tmp" />
+    </ItemGroup>
+    <Delete Files="@(AdditionalCleanFiles)" ContinueOnError="true" />
+  </Target>
+
+</Project>

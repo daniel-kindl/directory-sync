@@ -1,0 +1,31 @@
+{
+  // DirectorySync Configuration File
+  // This file can be named dirsync.json and placed in your project directory
+  
+  // Source directory (absolute path required)
+  "source": "C:\\Source",
+  
+  // Replica directory (absolute path required)
+  "replica": "C:\\Replica",
+  
+  // Sync interval in seconds (for daemon mode)
+  "interval": 60,
+  
+  // Allow deletion of files in replica
+  "allowDelete": true,
+  
+  // Use SHA-256 checksums for file comparison
+  "useChecksum": true,
+  
+  // Use timestamp optimization (skip checksum if timestamps match)
+  "useTimestampOptimization": true,
+  
+  // Timestamp tolerance in seconds (2 seconds for FAT32 compatibility)
+  "timestampTolerance": 2.0,
+  
+  // Log directory (optional, defaults to current directory)
+  "logDirectory": null,
+  
+  // Dry run mode - show what would be done without making changes
+  "dryRun": false
+}

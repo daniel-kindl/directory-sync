@@ -1,0 +1,54 @@
+<Project>
+
+  <!-- Common properties for all projects -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningLevel>5</WarningLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+
+  <!-- Version and metadata -->
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <Authors>DirectorySync Contributors</Authors>
+    <Company>DirectorySync</Company>
+    <Product>DirectorySync</Product>
+    <Copyright>Copyright © 2025 DirectorySync Contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/daniel-kindl/directory-sync</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/daniel-kindl/directory-sync</PackageProjectUrl>
+  </PropertyGroup>
+
+  <!-- Build output configuration -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- Missing XML comment for publicly visible type or member -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Code analysis -->
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>Default</AnalysisMode>
+  </PropertyGroup>
+
+  <!-- Nullable reference types configuration -->
+  <PropertyGroup>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+  </PropertyGroup>
+
+  <!-- Strong naming (optional - uncomment if needed) -->
+  <!--
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)key.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  -->
+
+</Project>

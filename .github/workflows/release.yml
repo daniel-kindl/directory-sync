@@ -1,0 +1,169 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  build-and-publish:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Get version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore /p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Run tests
+      run: dotnet test --configuration Release --no-build --verbosity normal
+
+    - name: Publish Windows x64
+      run: |
+        dotnet publish Cli/DirectorySync.Cli.csproj \
+          --configuration Release \
+          --runtime win-x64 \
+          --self-contained true \
+          --output ./publish/win-x64 \
+          /p:PublishSingleFile=true \
+          /p:IncludeNativeLibrariesForSelfExtract=true \
+          /p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Publish Linux x64
+      run: |
+        dotnet publish Cli/DirectorySync.Cli.csproj \
+          --configuration Release \
+          --runtime linux-x64 \
+          --self-contained true \
+          --output ./publish/linux-x64 \
+          /p:PublishSingleFile=true \
+          /p:IncludeNativeLibrariesForSelfExtract=true \
+          /p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Publish macOS x64
+      run: |
+        dotnet publish Cli/DirectorySync.Cli.csproj \
+          --configuration Release \
+          --runtime osx-x64 \
+          --self-contained true \
+          --output ./publish/osx-x64 \
+          /p:PublishSingleFile=true \
+          /p:IncludeNativeLibrariesForSelfExtract=true \
+          /p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Publish macOS ARM64
+      run: |
+        dotnet publish Cli/DirectorySync.Cli.csproj \
+          --configuration Release \
+          --runtime osx-arm64 \
+          --self-contained true \
+          --output ./publish/osx-arm64 \
+          /p:PublishSingleFile=true \
+          /p:IncludeNativeLibrariesForSelfExtract=true \
+          /p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Create release archives
+      run: |
+        cd publish
+        
+        # Windows
+        cd win-x64
+        zip -r ../dirsync-win-x64-v${{ steps.version.outputs.VERSION }}.zip *
+        cd ..
+        
+        # Linux
+        cd linux-x64
+        tar czf ../dirsync-linux-x64-v${{ steps.version.outputs.VERSION }}.tar.gz *
+        cd ..
+        
+        # macOS x64
+        cd osx-x64
+        tar czf ../dirsync-macos-x64-v${{ steps.version.outputs.VERSION }}.tar.gz *
+        cd ..
+        
+        # macOS ARM64
+        cd osx-arm64
+        tar czf ../dirsync-macos-arm64-v${{ steps.version.outputs.VERSION }}.tar.gz *
+        cd ..
+
+    - name: Generate checksums
+      run: |
+        cd publish
+        sha256sum *.zip *.tar.gz > checksums-sha256.txt
+        cat checksums-sha256.txt
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.version.outputs.VERSION }}
+        name: Release v${{ steps.version.outputs.VERSION }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        files: |
+          publish/*.zip
+          publish/*.tar.gz
+          publish/checksums-sha256.txt
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-nuget:
+    name: Publish to NuGet
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Get version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Pack NuGet package
+      run: |
+        dotnet pack Engine/DirectorySync.Engine.csproj \
+          --configuration Release \
+          --output ./nupkg \
+          /p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Push to NuGet
+      run: dotnet nuget push ./nupkg/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
+      continue-on-error: true

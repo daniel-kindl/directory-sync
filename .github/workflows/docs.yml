@@ -1,0 +1,110 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**.cs'
+      - 'README.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  generate-api-docs:
+    name: Generate API Documentation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install DocFX
+      run: dotnet tool install -g docfx
+
+    - name: Generate XML documentation
+      run: dotnet build --configuration Release /p:GenerateDocumentationFile=true
+
+    - name: Setup DocFX config
+      run: |
+        mkdir -p docs
+        cat > docfx.json << 'EOF'
+        {
+          "metadata": [
+            {
+              "src": [
+                {
+                  "files": [ "Engine/**/*.csproj", "Cli/**/*.csproj" ],
+                  "src": "."
+                }
+              ],
+              "dest": "api",
+              "disableGitFeatures": false,
+              "disableDefaultFilter": false
+            }
+          ],
+          "build": {
+            "content": [
+              {
+                "files": [ "api/**.yml", "api/index.md" ]
+              },
+              {
+                "files": [ "*.md" ]
+              }
+            ],
+            "resource": [
+              {
+                "files": [ "images/**" ]
+              }
+            ],
+            "dest": "_site",
+            "template": [ "default" ]
+          }
+        }
+        EOF
+
+    - name: Build documentation
+      run: docfx build docfx.json
+      continue-on-error: true
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./_site
+        force_orphan: true
+
+  validate-docs:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check for missing XML docs
+      run: |
+        # Find C# files with public members but no XML comments
+        find Engine Cli -name "*.cs" -type f | while read file; do
+          if grep -q "public " "$file"; then
+            if ! grep -q "///" "$file"; then
+              echo "::warning file=$file::Missing XML documentation"
+            fi
+          fi
+        done
+
+    - name: Validate README links
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-quiet-mode: 'yes'
+        config-file: '.github/markdown-link-check-config.json'
