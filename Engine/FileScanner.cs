@@ -78,30 +78,53 @@ public class FileScanner
         int symlinkDirCount = 0;
         int symlinkFileCount = 0;
 
-        foreach (string dir in Directory.GetDirectories(directoryPath, "*", SearchOption.AllDirectories))
+        // Use manual recursion to properly skip symlinks before traversing them
+        ScanDirectoryRecursive(directoryPath, directoryPath, directoryItems, normalizedBase,
+            ref dirCount, ref fileCount, ref symlinkDirCount, ref symlinkFileCount, cancellationToken);
+
+        _logger.LogInformation("Scanned {Directory} - Found {DirCount} directories, {FileCount} files" +
+            (symlinkDirCount > 0 || symlinkFileCount > 0 ? " (Skipped {SymlinkDirCount} symlink dirs, {SymlinkFileCount} symlink files)" : ""),
+            directoryPath, dirCount, fileCount, symlinkDirCount, symlinkFileCount);
+
+        return directoryItems;
+    }
+
+    private void ScanDirectoryRecursive(string basePath, string currentPath, Dictionary<string, SyncItem> items,
+        string normalizedBase, ref int dirCount, ref int fileCount, ref int symlinkDirCount, ref int symlinkFileCount,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Scan directories in current level
+        foreach (string dir in Directory.GetDirectories(currentPath))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Skip symbolic links to prevent infinite loops
+            // Check if this directory is a symbolic link BEFORE recursing into it
             DirectoryInfo dirInfo = new(dir);
             if (dirInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
             {
                 _logger.LogDebug("Skipping symbolic link directory: {Path}", dir);
                 symlinkDirCount++;
-                continue;
+                continue; // Don't recurse into symlinks
             }
 
-            string relDirPath = Path.GetRelativePath(directoryPath, dir);
+            string relDirPath = Path.GetRelativePath(basePath, dir);
             PathValidator.ValidateRelativePathSafety(normalizedBase, relDirPath);
-            directoryItems.TryAdd(relDirPath, new SyncItem(true, string.Empty, 0, DateTime.MinValue));
+            items.TryAdd(relDirPath, new SyncItem(true, string.Empty, 0, DateTime.MinValue));
             dirCount++;
+
+            // Recurse into this directory (it's not a symlink)
+            ScanDirectoryRecursive(basePath, dir, items, normalizedBase,
+                ref dirCount, ref fileCount, ref symlinkDirCount, ref symlinkFileCount, cancellationToken);
         }
 
-        foreach (string file in Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories))
+        // Scan files in current level
+        foreach (string file in Directory.GetFiles(currentPath))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Skip symbolic links to prevent unexpected behavior
+            // Skip symbolic link files
             FileInfo fileInfo = new(file);
             if (fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
             {
@@ -110,20 +133,14 @@ public class FileScanner
                 continue;
             }
 
-            string relFilePath = Path.GetRelativePath(directoryPath, file);
+            string relFilePath = Path.GetRelativePath(basePath, file);
             PathValidator.ValidateRelativePathSafety(normalizedBase, relFilePath);
 
             string fileHash = _useChecksum ? ComputeFileHash(fileInfo.FullName, cancellationToken) : string.Empty;
-            directoryItems.TryAdd(relFilePath,
+            items.TryAdd(relFilePath,
                 new SyncItem(false, fileHash, fileInfo.Length, fileInfo.LastWriteTimeUtc));
             fileCount++;
         }
-
-        _logger.LogInformation("Scanned {Directory} - Found {DirCount} directories, {FileCount} files" +
-            (symlinkDirCount > 0 || symlinkFileCount > 0 ? " (Skipped {SymlinkDirCount} symlink dirs, {SymlinkFileCount} symlink files)" : ""),
-            directoryPath, dirCount, fileCount, symlinkDirCount, symlinkFileCount);
-
-        return directoryItems;
     }
 
     /// <summary>
