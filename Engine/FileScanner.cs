@@ -24,9 +24,9 @@ public class FileScanner
     /// Initializes a new instance of the <see cref="FileScanner"/> class with the specified options.
     /// </summary>
     /// <param name="useChecksum">If true, computes SHA-256 checksums for file comparison. If false, only size and timestamp are used. Default is true.</param>
-    /// <param name="useTimestampOptimization">If true, files with identical size and timestamp (within tolerance) are considered identical without computing checksums. Default is true.</param>
+    /// <param name="useTimestampOptimization">If true, files with identical size and timestamp are considered identical without computing checksums. Default is true.</param>
     /// <param name="logger">Optional logger for diagnostic output. If null, a <see cref="NullLogger"/> is used.</param>
-    /// <param name="timestampTolerance">Tolerance for timestamp comparisons. If null, defaults to 2 seconds for FAT32 filesystem compatibility.</param>
+    /// <param name="timestampTolerance">Tolerance used to identify near-equal timestamps that require checksum verification. If null, defaults to 2 seconds for FAT32 filesystem compatibility.</param>
     /// <remarks>
     /// The default timestamp tolerance of 2 seconds accommodates FAT32 filesystems which have 2-second timestamp granularity.
     /// Hash computation uses 1MB chunks to balance memory efficiency with performance.
@@ -45,6 +45,7 @@ public class FileScanner
     /// </summary>
     /// <param name="directoryPath">The absolute or relative path to the directory to scan.</param>
     /// <param name="cancellationToken">Token to monitor for cancellation requests. Cancellation is checked between processing each file and directory.</param>
+    /// <param name="computeChecksums">If false, checksum computation is deferred and file hashes are left empty.</param>
     /// <returns>
     /// A dictionary mapping relative paths to <see cref="SyncItem"/> metadata. Keys are relative paths from <paramref name="directoryPath"/>.
     /// Returns an empty dictionary if the directory does not exist.
@@ -60,7 +61,8 @@ public class FileScanner
     /// Hash computation is subject to a 5-minute timeout per file to prevent hangs on network issues or extremely large files.
     /// The method validates all relative paths to prevent directory traversal attacks.
     /// </remarks>
-    public Dictionary<string, SyncItem> ScanDirectory(string directoryPath, CancellationToken cancellationToken = default)
+    public Dictionary<string, SyncItem> ScanDirectory(string directoryPath, CancellationToken cancellationToken = default,
+        bool computeChecksums = true)
     {
         _logger.LogDebug("Starting directory scan: {Directory}", directoryPath);
 
@@ -80,7 +82,7 @@ public class FileScanner
 
         // Use manual recursion to properly skip symlinks before traversing them
         ScanDirectoryRecursive(directoryPath, directoryPath, directoryItems, normalizedBase,
-            ref dirCount, ref fileCount, ref symlinkDirCount, ref symlinkFileCount, cancellationToken);
+            ref dirCount, ref fileCount, ref symlinkDirCount, ref symlinkFileCount, cancellationToken, computeChecksums);
 
         _logger.LogInformation("Scanned {Directory} - Found {DirCount} directories, {FileCount} files" +
             (symlinkDirCount > 0 || symlinkFileCount > 0 ? " (Skipped {SymlinkDirCount} symlink dirs, {SymlinkFileCount} symlink files)" : ""),
@@ -91,7 +93,7 @@ public class FileScanner
 
     private void ScanDirectoryRecursive(string basePath, string currentPath, Dictionary<string, SyncItem> items,
         string normalizedBase, ref int dirCount, ref int fileCount, ref int symlinkDirCount, ref int symlinkFileCount,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool computeChecksums)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -116,7 +118,7 @@ public class FileScanner
 
             // Recurse into this directory (it's not a symlink)
             ScanDirectoryRecursive(basePath, dir, items, normalizedBase,
-                ref dirCount, ref fileCount, ref symlinkDirCount, ref symlinkFileCount, cancellationToken);
+                ref dirCount, ref fileCount, ref symlinkDirCount, ref symlinkFileCount, cancellationToken, computeChecksums);
         }
 
         // Scan files in current level
@@ -136,7 +138,9 @@ public class FileScanner
             string relFilePath = Path.GetRelativePath(basePath, file);
             PathValidator.ValidateRelativePathSafety(normalizedBase, relFilePath);
 
-            string fileHash = _useChecksum ? ComputeFileHash(fileInfo.FullName, cancellationToken) : string.Empty;
+            string fileHash = _useChecksum && computeChecksums
+                ? ComputeFileHash(fileInfo.FullName, cancellationToken)
+                : string.Empty;
             items.TryAdd(relFilePath,
                 new SyncItem(false, fileHash, fileInfo.Length, fileInfo.LastWriteTimeUtc));
             fileCount++;
@@ -156,8 +160,9 @@ public class FileScanner
     /// Comparison strategy depends on instance configuration:
     /// <list type="number">
     /// <item>If sizes differ, returns false immediately.</item>
-    /// <item>If <see cref="_useTimestampOptimization"/> is true and timestamps match within tolerance, returns true.</item>
-    /// <item>If <see cref="_useChecksum"/> is false, returns false (indicating uncertainty).</item>
+    /// <item>If <see cref="_useTimestampOptimization"/> is true and timestamps match exactly, returns true.</item>
+    /// <item>If timestamps are close but not equal, checksum verification is required when enabled.</item>
+    /// <item>If <see cref="_useChecksum"/> is false, returns false (indicating a timestamp mismatch).</item>
     /// <item>Otherwise, computes and compares SHA-256 checksums.</item>
     /// </list>
     /// This method is synchronous and may block for large files when computing checksums.
@@ -175,12 +180,18 @@ public class FileScanner
 
         if (_useTimestampOptimization)
         {
-            // Use configurable tolerance (default 2s for FAT32 compatibility)
             TimeSpan difference = (f1.LastWriteTimeUtc - f2.LastWriteTimeUtc).Duration();
+
+            if (difference == TimeSpan.Zero)
+            {
+                return true;
+            }
 
             if (difference <= _timestampTolerance)
             {
-                return true;
+                _logger.LogDebug(
+                    "Timestamps differ within tolerance ({Difference}); verifying file contents",
+                    difference);
             }
         }
 

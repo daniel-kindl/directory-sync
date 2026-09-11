@@ -36,12 +36,12 @@ public class SyncPlanner
     /// <para>Planning is performed in three phases:</para>
     /// <list type="number">
     /// <item><description>Directories from source: creates missing directories, resolves file/directory conflicts.</description></item>
-    /// <item><description>Files from source: copies new files, updates changed files (by hash or size), resolves directory/file conflicts.</description></item>
+    /// <item><description>Files from source: copies new files, updates changed files (by hash, size, or timestamp when hashes are deferred), resolves directory/file conflicts.</description></item>
     /// <item><description>Deletions (if <paramref name="allowDelete"/> is true): removes items from replica that don't exist in source, directories deleted last.</description></item>
     /// </list>
     /// <para>
     /// File changes are detected by comparing <see cref="SyncItem.ItemHash"/> and <see cref="SyncItem.Size"/>.
-    /// If either differs, an update task is generated.
+    /// When both hashes are deferred, <see cref="SyncItem.LastWriteUtc"/> is compared instead.
     /// </para>
     /// <para>
     /// This method does not throw exceptions and does not perform file system operations.
@@ -109,7 +109,10 @@ public class SyncPlanner
                     Path.Combine(sourceRoot, path),
                     Path.Combine(destinationRoot, path)));
             }
-            else if (repMeta.ItemHash != srcMeta.ItemHash || repMeta.Size != srcMeta.Size)
+            else if (repMeta.Size != srcMeta.Size ||
+                     (string.IsNullOrEmpty(repMeta.ItemHash) && string.IsNullOrEmpty(srcMeta.ItemHash)
+                         ? repMeta.LastWriteUtc != srcMeta.LastWriteUtc
+                         : repMeta.ItemHash != srcMeta.ItemHash))
             {
                 tasks.Add(new SyncTask(SyncAction.UpdateFile,
                     Path.Combine(sourceRoot, path),

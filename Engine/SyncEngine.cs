@@ -112,11 +112,28 @@ public class SyncEngine
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        Dictionary<string, SyncItem> sourceItems = _scanner.ScanDirectory(options.Source, cancellationToken);
+        Dictionary<string, SyncItem> sourceItems = _scanner.ScanDirectory(options.Source, cancellationToken, computeChecksums: false);
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        Dictionary<string, SyncItem> replicaItems = _scanner.ScanDirectory(options.Replica, cancellationToken);
+        Dictionary<string, SyncItem> replicaItems = _scanner.ScanDirectory(options.Replica, cancellationToken, computeChecksums: false);
+
+        foreach ((string path, SyncItem srcItem) in sourceItems.ToList())
+        {
+            if (srcItem.IsDir || !replicaItems.TryGetValue(path, out SyncItem? repItem) || repItem.IsDir)
+            {
+                continue;
+            }
+
+            string sourcePath = Path.Combine(options.Source, path);
+            string replicaPath = Path.Combine(options.Replica, path);
+
+            if (_scanner.AreFilesIdentical(sourcePath, replicaPath))
+            {
+                sourceItems.Remove(path);
+                replicaItems.Remove(path);
+            }
+        }
 
         return _planner.GetSyncTasks(sourceItems, options.Source, replicaItems, options.Replica, options.AllowDelete);
     }
