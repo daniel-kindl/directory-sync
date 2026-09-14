@@ -14,7 +14,7 @@
     <PackageVersion Include="Serilog.Sinks.File" Version="7.*" />
     
     <!-- CLI Framework -->
-    <PackageVersion Include="Spectre.Console.Cli" Version="0.53.1" />
+    <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
     
     <!-- Testing -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.*" />
